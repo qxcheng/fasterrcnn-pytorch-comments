@@ -1,14 +1,15 @@
 from __future__ import  absolute_import
 from __future__ import  division
-import torch as t
-from data.voc_dataset import VOCBboxDataset
-from skimage import transform as sktsf
-from torchvision import transforms as tvtsf
-from data import util
 import numpy as np
+import torch as t
+from torchvision import transforms as tvtsf
+from skimage import transform as sktsf
+
+from data import util
+from data.voc_dataset import VOCBboxDataset
 from utils.config import opt
 
-
+# 如果使用caffe_pretrain进行预训练，对图片进行逆正则化处理，符合caffe模型需要的格式
 def inverse_normalize(img):
     if opt.caffe_pretrain:
         img = img + (np.array([122.7717, 115.9465, 102.9801]).reshape(3, 1, 1))
@@ -16,7 +17,7 @@ def inverse_normalize(img):
     # approximate un-normalize for visualize
     return (img * 0.225 + 0.45).clip(min=0, max=1) * 255
 
-
+# 对图片进行归一化处理
 def pytorch_normalze(img):
     """
     https://github.com/pytorch/vision/issues/223
@@ -27,7 +28,7 @@ def pytorch_normalze(img):
     img = normalize(t.from_numpy(img))
     return img.numpy()
 
-
+# 对图片进行归一化处理，符合caffe格式
 def caffe_normalize(img):
     """
     return appr -125-125 BGR
@@ -41,23 +42,10 @@ def caffe_normalize(img):
 
 def preprocess(img, min_size=600, max_size=1000):
     """Preprocess an image for feature extraction.
-
-    The length of the shorter edge is scaled to :obj:`self.min_size`.
-    After the scaling, if the length of the longer edge is longer than
-    :param min_size:
-    :obj:`self.max_size`, the image is scaled to fit the longer edge
-    to :obj:`self.max_size`.
-
-    After resizing the image, the image is subtracted by a mean image value
-    :obj:`self.mean`.
-
     Args:
-        img (~numpy.ndarray): An image. This is in CHW and RGB format.
-            The range of its value is :math:`[0, 255]`.
-
+        img (~numpy.ndarray): CHW and RGB format. [0, 255] range.
     Returns:
         ~numpy.ndarray: A preprocessed image.
-
     """
     C, H, W = img.shape
     scale1 = min_size / min(H, W)
@@ -75,20 +63,19 @@ def preprocess(img, min_size=600, max_size=1000):
 
 
 class Transform(object):
-
     def __init__(self, min_size=600, max_size=1000):
         self.min_size = min_size
         self.max_size = max_size
 
     def __call__(self, in_data):
-        img, bbox, label = in_data
+        img, bbox, label = in_data   # 从in_data中读取 img,bbox,label 
         _, H, W = img.shape
-        img = preprocess(img, self.min_size, self.max_size)
+        img = preprocess(img, self.min_size, self.max_size) #缩放和归一化
         _, o_H, o_W = img.shape
         scale = o_H / H
-        bbox = util.resize_bbox(bbox, (H, W), (o_H, o_W))
+        bbox = util.resize_bbox(bbox, (H, W), (o_H, o_W))   #bbox缩放调整
 
-        # horizontally flip
+        # 随机翻转，增强鲁棒性
         img, params = util.random_flip(
             img, x_random=True, return_param=True)
         bbox = util.flip_bbox(

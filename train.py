@@ -1,11 +1,10 @@
 from __future__ import  absolute_import
-# though cupy is not used but without this line, it raise errors...
-import cupy as cp
+import cupy as cp  # though cupy is not used but without this line, it raise errors...
 import os
 
-import ipdb
+import ipdb            #调试工具
 import matplotlib
-from tqdm import tqdm
+from tqdm import tqdm  #进度条库
 
 from utils.config import opt
 from data.dataset import Dataset, TestDataset, inverse_normalize
@@ -18,10 +17,9 @@ from utils.eval_tool import eval_detection_voc
 
 # fix for ulimit
 # https://github.com/pytorch/pytorch/issues/973#issuecomment-346405667
-import resource
-
-rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
-resource.setrlimit(resource.RLIMIT_NOFILE, (20480, rlimit[1]))
+# import resource
+# rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)             #能打开的最大文件数
+# resource.setrlimit(resource.RLIMIT_NOFILE, (20480, rlimit[1]))
 
 matplotlib.use('agg')
 
@@ -127,6 +125,5 @@ def train(**kwargs):
 
 
 if __name__ == '__main__':
-    import fire
-
+    import fire  # 自动生成命令行界面
     fire.Fire()
