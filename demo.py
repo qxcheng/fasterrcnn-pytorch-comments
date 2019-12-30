@@ -10,7 +10,7 @@ from data.util import  read_image
 
 
 img = read_image('demo.jpg')
-img = t.from_numpy(img)[None]
+img = t.from_numpy(img)[None]                    # [1,3,375,500]
 
 faster_rcnn = FasterRCNNVGG16()
 trainer = FasterRCNNTrainer(faster_rcnn).cuda()

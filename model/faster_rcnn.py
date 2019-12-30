@@ -83,7 +83,7 @@ class FasterRCNN(nn.Module):
     @nograd
     def predict(self, imgs, sizes=None, visualize=False):
         """
-        imgs:  CHW and RGB [0, 255]
+        imgs:  CHW and RGB [0, 255]  [1,3,375,500]
 
         bboxes: (R, 4)  (y_{min}, x_{min}, y_{max}, x_{max}
         labels: (R,)    [0, L - 1]
@@ -94,9 +94,9 @@ class FasterRCNN(nn.Module):
             self.use_preset('visualize')
             prepared_imgs = list()
             sizes = list()
-            for img in imgs:
-                size = img.shape[1:]
-                img = preprocess(at.tonumpy(img))
+            for img in imgs:                        # img:[3,375,500]
+                size = img.shape[1:]                # [375,500]
+                img = preprocess(at.tonumpy(img))   # [3,600,800]
                 prepared_imgs.append(img)
                 sizes.append(size)
         else:
@@ -105,9 +105,9 @@ class FasterRCNN(nn.Module):
         labels = list()
         scores = list()
         for img, size in zip(prepared_imgs, sizes):
-            img = at.totensor(img[None]).float()
-            scale = img.shape[3] / size[1]
-            roi_cls_loc, roi_scores, rois, _ = self(img, scale=scale)
+            img = at.totensor(img[None]).float()          # [1,3,600,800]
+            scale = img.shape[3] / size[1]                # float=1.6
+            roi_cls_loc, roi_scores, rois, _ = self(img, scale=scale) # [300,84] [300,21] np[300,4] np[300,]
             # We are assuming that batch size is 1.
             roi_score = roi_scores.data
             roi_cls_loc = roi_cls_loc.data
@@ -115,16 +115,13 @@ class FasterRCNN(nn.Module):
 
             # Convert predictions to bounding boxes in image coordinates.
             # Bounding boxes are scaled to the scale of the input images.
-            mean = t.Tensor(self.loc_normalize_mean).cuda(). \
-                repeat(self.n_class)[None]
-            std = t.Tensor(self.loc_normalize_std).cuda(). \
-                repeat(self.n_class)[None]
+            mean = t.Tensor(self.loc_normalize_mean).cuda().repeat(self.n_class)[None]
+            std = t.Tensor(self.loc_normalize_std).cuda().repeat(self.n_class)[None]
 
             roi_cls_loc = (roi_cls_loc * std + mean)
             roi_cls_loc = roi_cls_loc.view(-1, self.n_class, 4)
             roi = roi.view(-1, 1, 4).expand_as(roi_cls_loc)
-            cls_bbox = loc2bbox(at.tonumpy(roi).reshape((-1, 4)),
-                                at.tonumpy(roi_cls_loc).reshape((-1, 4)))
+            cls_bbox = loc2bbox(at.tonumpy(roi).reshape((-1, 4)), at.tonumpy(roi_cls_loc).reshape((-1, 4)))
             cls_bbox = at.totensor(cls_bbox)
             cls_bbox = cls_bbox.view(-1, self.n_class * 4)
             # clip bounding box
