@@ -76,22 +76,22 @@ class RegionProposalNetwork(nn.Module):
                 Its shape is :math:`(H W A, 4)`.
 
         """
-        n, _, hh, ww = x.shape                                                                   # (1, _, 60, 40)
-        anchor = _enumerate_shifted_anchor(np.array(self.anchor_base), self.feat_stride, hh, ww) # (21600, 4)
+        n, _, hh, ww = x.shape                                                                   # [1, 512, 37, 50]
+        anchor = _enumerate_shifted_anchor(np.array(self.anchor_base), self.feat_stride, hh, ww) # (16650, 4)
 
-        n_anchor = anchor.shape[0] // (hh * ww)                                                  # 9
-        h = F.relu(self.conv1(x))                                                                #
+        n_anchor = anchor.shape[0] // (hh * ww)                                                  # int=9
+        h = F.relu(self.conv1(x))                                                                # [1, 512, 37, 50]
 
-        rpn_locs = self.loc(h)
+        rpn_locs = self.loc(h)                                                                   # [1, 36, 37, 50]
         # UNNOTE: check whether need contiguous
         # A: Yes
-        rpn_locs = rpn_locs.permute(0, 2, 3, 1).contiguous().view(n, -1, 4)
-        rpn_scores = self.score(h)
-        rpn_scores = rpn_scores.permute(0, 2, 3, 1).contiguous()
-        rpn_softmax_scores = F.softmax(rpn_scores.view(n, hh, ww, n_anchor, 2), dim=4)
-        rpn_fg_scores = rpn_softmax_scores[:, :, :, :, 1].contiguous()
-        rpn_fg_scores = rpn_fg_scores.view(n, -1)
-        rpn_scores = rpn_scores.view(n, -1, 2)
+        rpn_locs = rpn_locs.permute(0, 2, 3, 1).contiguous().view(n, -1, 4)                      # [1,16650,4]
+        rpn_scores = self.score(h)                                                               # [1,18,37,50]
+        rpn_scores = rpn_scores.permute(0, 2, 3, 1).contiguous()                                 # [1,37,50,18]
+        rpn_softmax_scores = F.softmax(rpn_scores.view(n, hh, ww, n_anchor, 2), dim=4)           # [1,37,50,9,2]
+        rpn_fg_scores = rpn_softmax_scores[:, :, :, :, 1].contiguous()                           # [1,37,50,9]
+        rpn_fg_scores = rpn_fg_scores.view(n, -1)                                                # [1,16650]
+        rpn_scores = rpn_scores.view(n, -1, 2)                                                   # [1,16650,2]
 
         rois = list()
         roi_indices = list()
@@ -105,8 +105,8 @@ class RegionProposalNetwork(nn.Module):
             rois.append(roi)
             roi_indices.append(batch_index)
 
-        rois = np.concatenate(rois, axis=0)
-        roi_indices = np.concatenate(roi_indices, axis=0)
+        rois = np.concatenate(rois, axis=0)                      # (300,4)
+        roi_indices = np.concatenate(roi_indices, axis=0)        # (300,)
         return rpn_locs, rpn_scores, rois, roi_indices, anchor
 
 # 产生anchor 为原图尺寸

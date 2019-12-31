@@ -39,12 +39,12 @@ class FasterRCNN(nn.Module):
     def n_class(self):
         return self.head.n_class   # Total number of classes including the background.
 
-    def forward(self, x, scale=1.):
-        img_size = x.shape[2:]
+    def forward(self, x, scale=1.):  # [1,3,600,800] 1.6
+        img_size = x.shape[2:]       # [600,800]
 
-        h = self.extractor(x)
-        rpn_locs, rpn_scores, rois, roi_indices, anchor = self.rpn(h, img_size, scale)
-        roi_cls_locs, roi_scores = self.head(h, rois, roi_indices)
+        h = self.extractor(x)        # [1,512,37,50]
+        rpn_locs, rpn_scores, rois, roi_indices, anchor = self.rpn(h, img_size, scale) # [1,16650,4] [1,16650,2] (300,4) (300,) (16650,4)
+        roi_cls_locs, roi_scores = self.head(h, rois, roi_indices)                     # [300,84] [300,21]
         return roi_cls_locs, roi_scores, rois, roi_indices
 
     def use_preset(self, preset):
