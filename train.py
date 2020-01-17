@@ -48,22 +48,14 @@ def eval(dataloader, faster_rcnn, test_num=10000):
 def train(**kwargs):
     opt._parse(kwargs)
 
-    dataset = Dataset(opt)
     print('load data')
-    dataloader = data_.DataLoader(dataset, \
-                                  batch_size=1, \
-                                  shuffle=True, \
-                                  # pin_memory=True,
-                                  num_workers=opt.num_workers)
+    dataset = Dataset(opt)
+    dataloader = data_.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=opt.num_workers) # pin_memory=True,
     testset = TestDataset(opt)
-    test_dataloader = data_.DataLoader(testset,
-                                       batch_size=1,
-                                       num_workers=opt.test_num_workers,
-                                       shuffle=False, \
-                                       pin_memory=True
-                                       )
+    test_dataloader = data_.DataLoader(testset, batch_size=1, num_workers=opt.test_num_workers, shuffle=False, pin_memory=True)
+
+    print('model constructing')
     faster_rcnn = FasterRCNNVGG16()
-    print('model construct completed')
     trainer = FasterRCNNTrainer(faster_rcnn).cuda()
     if opt.load_path:
         trainer.load(opt.load_path)
@@ -74,8 +66,8 @@ def train(**kwargs):
     for epoch in range(opt.epoch):
         trainer.reset_meters()
         for ii, (img, bbox_, label_, scale) in tqdm(enumerate(dataloader)):
-            scale = at.scalar(scale)
-            img, bbox, label = img.cuda().float(), bbox_.cuda(), label_.cuda()
+            scale = at.scalar(scale)                                            # float=1.6
+            img, bbox, label = img.cuda().float(), bbox_.cuda(), label_.cuda()  # [1,3,600,800] [1,3,4] [1,3]
             trainer.train_step(img, bbox, label, scale)
 
             if (ii + 1) % opt.plot_every == 0:
@@ -125,5 +117,7 @@ def train(**kwargs):
 
 
 if __name__ == '__main__':
-    import fire  # 自动生成命令行界面
-    fire.Fire()
+    # import fire  # 自动生成命令行界面
+    # fire.Fire()
+
+    train()

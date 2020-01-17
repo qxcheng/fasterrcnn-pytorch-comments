@@ -64,18 +64,11 @@ class RegionProposalNetwork(nn.Module):
 
 # 产生anchor 为原图尺寸
 def _enumerate_shifted_anchor(anchor_base, feat_stride, height, width):
-    # params: (9, 4)  16  60  40
-    # Enumerate all shifted anchors:
-    #
-    # add A anchors (1, A, 4) to
-    # cell K shifts (K, 1, 4) to get
-    # shift anchors (K, A, 4)
-    # reshape to (K*A, 4) shifted anchors
-    # return (K*A, 4)
-
     # !TODO: add support for torch.CudaTensor
     # xp = cuda.get_array_module(anchor_base)
-    # it seems that it can't be boosed using GPU
+    # it seems that it can't be boosted using GPU
+
+    # params: (9, 4)  stride=16  h=60  w=40
     import numpy as xp
     shift_y = xp.arange(0, height * feat_stride, feat_stride)     # (60,)
     shift_x = xp.arange(0, width * feat_stride, feat_stride)      # (40,)
